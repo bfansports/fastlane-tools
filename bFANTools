@@ -616,7 +616,7 @@ def notifySlack(msg, payload, success, channel)
   slack(
     message: msg,
     success: success,
-    slack_url: ENV["SLACK_URL"],
+    slack_url: ENV["SLACK_BFAN_URL"],
     channel: channel,
     payload: {
       'Build Date' => Time.new.to_s,
