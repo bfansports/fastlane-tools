@@ -616,13 +616,13 @@ def notifySlack(msg, payload, success, channel)
   slack(
     message: msg,
     success: success,
-    slack_url: ENV['SLACK_URL'],
+    slack_url: ENV["SLACK_URL"],
     channel: channel,
     payload: {
       'Build Date' => Time.new.to_s,
       'Built by' => 'Fastlane'
     },
-    default_payloads: [:last_git_commit_message]
+    default_payloads: [payload]
   )
 end
 
@@ -632,7 +632,7 @@ def notifySlackClient(msg, channel)
     username: "bFAN AutoBuild Bot",
     icon_url: "https://sportarchive-prod-eu-assets.s3-eu-west-1.amazonaws.com/images/bFAN_circle_128sq_color.png",
     success: true,
-    slack_url: ENV['SLACK_CLIENT_URL'],
+    slack_url: ENV["SLACK_CLIENT_URL"],
     channel: channel,
     default_payloads: [],
     payload: {
@@ -692,7 +692,7 @@ def beforeAll(tag)
   # get tag
   if tag == nil || tag == "develop"
     # we get the last commit
-    tag = getLastCommit()
+    tag = "develop"
     UI.important "No TAG provided to build. Using the 'develop' latest commit: #{tag}"
   elsif tag == "master"
     # we get the last TAG
@@ -701,7 +701,7 @@ def beforeAll(tag)
   end
 
   # Checkout the tag or branch
-  sh "pwd && git checkout -f #{tag}"
+  sh "pwd && git checkout #{tag}"
 
   # If it's not a tag, we pull the branch to get latest code
   if /^[0-9]+\.[0-9]+(\.[0-9]*)*$/.match(tag) == nil
