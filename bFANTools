@@ -234,16 +234,26 @@ def tagpush(tag)
 end
 
 # Download org image assets into local folder
-def downloadOrgImages(org_id, folder)
-  UI.important "Downloading images into #{folder}"
-  `mkdir -p #{folder}`
+def downloadOrgImages(org_id, folder, asset_path)
 
   org = getOrg(org_id)
 
   if (!org)
-    raise("No org #{org_id} ! Abording.")
+    raise("No org #{org_id} in the database! Abording.")
   end
 
+  `mkdir -p #{folder}`
+
+  if asset_path != nil
+    UI.important "asset_path provided. Inspecting path: #{asset_path}"
+    if File.file?(asset_path + "/ic_launcher.png")
+      sh "convert " + asset_path + "/ic_launcher.png -resize 512x512 " + "#{folder}/store_icon_android.png"
+      sh "convert " + asset_path + "/ic_launcher.png " + "#{folder}/store_icon_ios.jpg"
+      return
+    end
+  end
+
+  UI.important "Downloading images into #{folder}"
   # Splash
   if (org['branding'] && org['branding']['splash_screen'])
     UI.important "splash_screen"
@@ -291,7 +301,7 @@ def downloadOrgImages(org_id, folder)
   # Store icon ios
   if (org['branding'] && org['branding']['store_icon_ios'])
     UI.important "store_icon_ios"
-    File.open("#{folder}/store_icon_ios.png", "wb") do |file|
+    File.open("#{folder}/store_icon_ios.jpg", "wb") do |file|
       file.write open(org['branding']['store_icon_ios']).read
     end
   end
