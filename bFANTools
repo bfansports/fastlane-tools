@@ -630,9 +630,10 @@ def notifySlack(msg, payload, success, channel)
     channel: channel,
     payload: {
       'Build Date' => Time.new.to_s,
-      'Built by' => 'Fastlane'
+      'Built by' => 'Fastlane',
+      'Message' => payload
     },
-    default_payloads: [payload]
+    default_payloads: []
   )
 end
 
