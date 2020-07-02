@@ -578,6 +578,38 @@ def updateStoreFlag(org_id, value)
   end
 end
 
+# Update app version value in org
+def updateAppVersion(org_id, type, env, version)
+  begin
+    dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
+
+    response = dynamodb.update_item(
+      {
+        table_name: "Organizations",
+        key: {
+          "id" => org_id
+        },
+        expression_attribute_names: {
+          "#SETTINGS" => "settings",
+          "#APPS" => "apps",
+          "#TYPE" => type,
+          "#ENV_VERSION"  => env + "_version"
+        },
+        expression_attribute_values: {
+          ":value" => version
+        },
+        update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV_VERSION = :value"
+      }
+    )
+
+    return true
+
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    UI.error e.message
+    return false
+  end
+end
+
 # Return one org
 def getOrg(org_id)
   begin
