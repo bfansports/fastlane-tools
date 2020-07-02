@@ -516,6 +516,68 @@ def register_app(apk, bundle_id, env="dev")
   sh "./register.sh #{apk} #{bundle_id} #{avd} #{env}"
 end
 
+# Update ios/android app active flag in org
+def updateAppFlag(org_id, type, env, value)
+  begin
+    dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
+
+    response = dynamodb.update_item(
+      {
+        table_name: "Organizations",
+        key: {
+          "id" => org_id
+        },
+        expression_attribute_names: {
+          "#SETTINGS" => "settings",
+          "#APPS" => "apps",
+          "#TYPE" => type,
+          "#ENV"  => env
+        },
+        expression_attribute_values: {
+          ":value" => value
+        },
+        update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV = :value"
+      }
+    )
+
+    return true
+
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    UI.error e.message
+    return false
+  end
+end
+
+# Update app in_store flag in org
+def updateStoreFlag(org_id, value)
+  begin
+    dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
+
+    response = dynamodb.update_item(
+      {
+        table_name: "Organizations",
+        key: {
+          "id" => org_id
+        },
+        expression_attribute_names: {
+          "#SETTINGS" => "settings",
+          "#IN_STORE" => "in_stores"
+        },
+        expression_attribute_values: {
+          ":value" => value
+        },
+        update_expression: "SET #SETTINGS.#IN_STORE = :value"
+      }
+    )
+
+    return true
+
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    UI.error e.message
+    return false
+  end
+end
+
 # Return one org
 def getOrg(org_id)
   begin
