@@ -548,38 +548,8 @@ def updateAppFlag(org_id, type, env, value)
   end
 end
 
-# Update app in_store flag in org
-def updateStoreFlag(org_id, value)
-  begin
-    dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
-
-    response = dynamodb.update_item(
-      {
-        table_name: "Organizations",
-        key: {
-          "id" => org_id
-        },
-        expression_attribute_names: {
-          "#SETTINGS" => "settings",
-          "#IN_STORE" => "in_stores"
-        },
-        expression_attribute_values: {
-          ":value" => value
-        },
-        update_expression: "SET #SETTINGS.#IN_STORE = :value"
-      }
-    )
-
-    return true
-
-  rescue Aws::DynamoDB::Errors::ServiceError => e
-    UI.error e.message
-    return false
-  end
-end
-
 # Update app version value in org
-def updateAppVersion(org_id, type, env, version)
+def updateAppBetaVersion(org_id, type, env, version)
   begin
     dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
 
@@ -593,12 +563,59 @@ def updateAppVersion(org_id, type, env, version)
           "#SETTINGS" => "settings",
           "#APPS" => "apps",
           "#TYPE" => type,
-          "#ENV_VERSION"  => env + "_version"
+          "#ENV"  => env,
+          "#ENV_VERSION"  => env + "_version",
+          "#ENV_DATE"  => env + "_version_date",
         },
         expression_attribute_values: {
-          ":value" => version
+          ":env" => true,
+          ":version" => version,
+          ":date"    => Time.now.strftime("%d/%m/%Y")
         },
-        update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV_VERSION = :value"
+        update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV = :env,"\
+                               "#SETTINGS.#APPS.#TYPE.#ENV_VERSION = :version," \
+                               "#SETTINGS.#APPS.#TYPE.#ENV_DATE = :date"
+      }
+    )
+
+    return true
+
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    UI.error e.message
+    return false
+  end
+end
+
+# Update app in_store flag in org
+def updateAppProdVersion(org_id, type, version)
+  begin
+    dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
+
+    response = dynamodb.update_item(
+      {
+        table_name: "Organizations",
+        key: {
+          "id" => org_id
+        },
+        expression_attribute_names: {
+          "#SETTINGS" => "settings",
+          "#IN_STORE" => "in_stores",
+          "#APPS" => "apps",
+          "#TYPE" => type,
+          "#ENV"  => "prod",
+          "#STORE_VERSION"  => "store_version",
+          "#STORE_DATE"  => "store_version_date",
+        },
+        expression_attribute_values: {
+          ":env" => true,
+          ":store" => true,
+          ":version" => version,
+          ":date" => Time.now.strftime("%d/%m/%Y"),
+        },
+        update_expression: "SET #SETTINGS.#IN_STORE = :store," \
+                               "#SETTINGS.#APPS.#TYPE.#ENV = :env," \
+                               "#SETTINGS.#APPS.#TYPE.#STORE_VERSION = :version," \
+                               "#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date"
       }
     )
 
