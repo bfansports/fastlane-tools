@@ -553,6 +553,54 @@ def updateAppBetaVersion(org_id, type, env, version)
   begin
     dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
 
+    begin
+      # Making sure "settings.apps is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps"
+          },
+          expression_attribute_values: {
+            ":null" => nil,
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS = :empty",
+          condition_expression: "#SETTINGS.#APPS = :null"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.error e.message
+    end
+
+    begin
+      # Making sure "settings.apps.type is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps",
+            "#TYPE" => type
+          },
+          expression_attribute_values: {
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.error e.message
+    end
+
+    # updating the values
     response = dynamodb.update_item(
       {
         table_name: "Organizations",
@@ -590,6 +638,53 @@ end
 def updateAppProdVersion(org_id, type, version)
   begin
     dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
+
+    begin
+      # Making sure "settings.apps is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps"
+          },
+          expression_attribute_values: {
+            ":null" => nil,
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS = :empty",
+          condition_expression: "#SETTINGS.#APPS = :null"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.error e.message
+    end
+
+    begin
+      # Making sure "settings.apps is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps",
+            "#TYPE" => type
+          },
+          expression_attribute_values: {
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.error e.message
+    end
 
     response = dynamodb.update_item(
       {
