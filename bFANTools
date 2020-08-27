@@ -664,7 +664,7 @@ def updateAppProdVersion(org_id, type, version)
     end
 
     begin
-      # Making sure "settings.apps is init correctly"
+      # Making sure "settings.apps.{type} is init correctly"
       response = dynamodb.update_item(
         {
           table_name: "Organizations",
@@ -686,6 +686,7 @@ def updateAppProdVersion(org_id, type, version)
       UI.error e.message
     end
 
+    # Setting the dates
     response = dynamodb.update_item(
       {
         table_name: "Organizations",
@@ -700,17 +701,108 @@ def updateAppProdVersion(org_id, type, version)
           "#ENV"  => "prod",
           "#STORE_VERSION"  => "store_version",
           "#STORE_DATE"  => "store_version_date",
+          "#VERSION_IN_REVIEW"  => "version_in_review",
+          "#VERSION_IN_REVIEW_DATE"  => "version_in_review_date"
         },
         expression_attribute_values: {
           ":env" => true,
           ":store" => true,
           ":version" => version,
           ":date" => Time.now.strftime("%d/%m/%Y"),
+          ":null" => nil,
         },
         update_expression: "SET #SETTINGS.#IN_STORE = :store," \
                                "#SETTINGS.#APPS.#TYPE.#ENV = :env," \
                                "#SETTINGS.#APPS.#TYPE.#STORE_VERSION = :version," \
-                               "#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date"
+                               "#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date," \
+                               "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :null," \
+                               "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :null"
+      }
+    )
+
+    return true
+
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    UI.error e.message
+    return false
+  end
+end
+
+# Update app in_store flag in org
+def updateAppInReviewVersion(org_id, type, version)
+  begin
+    dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
+
+    begin
+      # Making sure "settings.apps is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps"
+          },
+          expression_attribute_values: {
+            ":null" => nil,
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS = :empty",
+          condition_expression: "#SETTINGS.#APPS = :null"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.error e.message
+    end
+
+    begin
+      # Making sure "settings.apps.{type} is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps",
+            "#TYPE" => type
+          },
+          expression_attribute_values: {
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.error e.message
+    end
+
+    # Setting the dates
+    response = dynamodb.update_item(
+      {
+        table_name: "Organizations",
+        key: {
+          "id" => org_id
+        },
+        expression_attribute_names: {
+          "#SETTINGS" => "settings",
+          "#APPS" => "apps",
+          "#TYPE" => type,
+          "#ENV"  => "prod",
+          "#VERSION_IN_REVIEW"  => "version_in_review",
+          "#VERSION_IN_REVIEW_DATE"  => "version_in_review_date",
+        },
+        expression_attribute_values: {
+          ":env" => true,
+          ":version" => version,
+          ":date" => Time.now.strftime("%d/%m/%Y"),
+        },
+        update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV = :env," \
+                               "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :version," \
+                               "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :date"
       }
     )
 
