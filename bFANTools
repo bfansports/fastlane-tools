@@ -574,7 +574,7 @@ def updateAppBetaVersion(org_id, type, env, version)
         }
       )
     rescue Aws::DynamoDB::Errors::ServiceError => e
-      UI.error e.message
+      UI.important "Skipping setting 'settings.apps' in org object"
     end
 
     begin
@@ -597,7 +597,7 @@ def updateAppBetaVersion(org_id, type, env, version)
         }
       )
     rescue Aws::DynamoDB::Errors::ServiceError => e
-      UI.error e.message
+      UI.important "Skipping setting 'settings.apps.#{type}' in org object"
     end
 
     # updating the values
@@ -660,7 +660,7 @@ def updateAppProdVersion(org_id, type, version)
         }
       )
     rescue Aws::DynamoDB::Errors::ServiceError => e
-      UI.error e.message
+      UI.important "Skipping setting 'settings.apps' in org object"
     end
 
     begin
@@ -683,7 +683,7 @@ def updateAppProdVersion(org_id, type, version)
         }
       )
     rescue Aws::DynamoDB::Errors::ServiceError => e
-      UI.error e.message
+      UI.important "Skipping setting 'settings.apps.#{type}' in org object"
     end
 
     # Setting the dates
