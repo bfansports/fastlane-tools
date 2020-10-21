@@ -814,6 +814,90 @@ def updateAppInReviewVersion(org_id, type, version)
   end
 end
 
+# Update app ratings in org
+def updateAppStoreRatings(org_id, type, ratings)
+  begin
+    dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
+
+    begin
+      # Making sure "settings.apps is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps"
+          },
+          expression_attribute_values: {
+            ":null" => nil,
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS = :empty",
+          condition_expression: "#SETTINGS.#APPS = :null"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.important "Skipping setting 'settings.apps' in org object"
+    end
+
+    begin
+      # Making sure "settings.apps.{type} is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps",
+            "#TYPE" => type
+          },
+          expression_attribute_values: {
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.important "Skipping setting 'settings.apps.#{type}' in org object"
+    end
+
+    # Setting the reviews
+    response = dynamodb.update_item(
+      {
+        table_name: "Organizations",
+        key: {
+          "id" => org_id
+        },
+        expression_attribute_names: {
+          "#SETTINGS" => "settings",
+          "#APPS" => "apps",
+          "#TYPE" => type,
+          "#STORE_RATING_COUNT"  => "store_rating_count",
+          "#STORE_AVERAGE_RATING"  => "store_average_rating"
+        },
+        expression_attribute_values: {
+          ":rating_count" => ratings.rating_count,
+          ":average_rating" => ratings.average_rating
+        },
+        update_expression: "SET " \
+                                "#SETTINGS.#APPS.#TYPE.#STORE_RATING_COUNT = :rating_count," \
+                                "#SETTINGS.#APPS.#TYPE.#STORE_AVERAGE_RATING = :average_rating"
+      }
+    )
+
+    return true
+
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    UI.error e.message
+    return false
+  end
+end
+
 # Return one org
 def getOrg(org_id)
   begin
