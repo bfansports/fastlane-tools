@@ -163,7 +163,7 @@ def getTestersList(org_id)
   org = getOrg(org_id)
   if org && org['settings'] && org['settings']['apps'] && org['settings']['apps']['testers']
     UI.message("Adding custom testers: " + org['settings']['apps']['testers'].join(','))
-    testers += org['settings']['apps']['testers']
+    testers |= org['settings']['apps']['testers']
   end
 
   testers = testers.compact.reject(&:empty?).map! { |a| a.strip }
