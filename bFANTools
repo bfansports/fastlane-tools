@@ -866,6 +866,30 @@ def updateAppStoreRatings(org_id, type, ratings)
       UI.important "Skipping setting 'settings.apps.#{type}' in org object"
     end
 
+    begin
+      # Making sure "settings.apps.{type}.ratings is init correctly"
+      response = dynamodb.update_item(
+        {
+          table_name: "Organizations",
+          key: {
+            "id" => org_id
+          },
+          expression_attribute_names: {
+            "#SETTINGS" => "settings",
+            "#APPS" => "apps",
+            "#TYPE" => type,
+            "#RATINGS" => "ratings"
+          },
+          expression_attribute_values: {
+            ":empty" => {},
+          },
+          update_expression: "SET #SETTINGS.#APPS.#TYPE.#RATINGS =  if_not_exists(#SETTINGS.#APPS.#TYPE.#RATINGS, :empty)"
+        }
+      )
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+      UI.important "Skipping setting 'settings.apps.#{type}.ratings' in org object"
+    end
+
     # Setting the reviews
     response = dynamodb.update_item(
       {
@@ -877,16 +901,32 @@ def updateAppStoreRatings(org_id, type, ratings)
           "#SETTINGS" => "settings",
           "#APPS" => "apps",
           "#TYPE" => type,
-          "#STORE_RATING_COUNT"  => "store_rating_count",
-          "#STORE_AVERAGE_RATING"  => "store_average_rating"
+          "#RATINGS" => "ratings",
+          "#RATING_COUNT"  => "rating_count",
+          "#AVERAGE_RATING"  => "average_rating",
+          "#ONE_STAR_RATING_COUNT"  => "one_star_rating_count",
+          "#TWO_STAR_RATING_COUNT"  => "two_star_rating_count",
+          "#THREE_STAR_RATING_COUNT"  => "three_star_rating_count",
+          "#FOUR_STAR_RATING_COUNT"  => "four_star_rating_count",
+          "#FIVE_STAR_RATING_COUNT"  => "five_star_rating_count",
         },
         expression_attribute_values: {
           ":rating_count" => ratings.rating_count,
-          ":average_rating" => ratings.average_rating
+          ":average_rating" => ratings.average_rating,
+          ":one_star_rating_count" => ratings.one_star_rating_count,
+          ":two_star_rating_count" => ratings.two_star_rating_count,
+          ":three_star_rating_count" => ratings.three_star_rating_count,
+          ":four_star_rating_count" => ratings.four_star_rating_count,
+          ":five_star_rating_count" => ratings.five_star_rating_count,
         },
         update_expression: "SET " \
-                                "#SETTINGS.#APPS.#TYPE.#STORE_RATING_COUNT = :rating_count," \
-                                "#SETTINGS.#APPS.#TYPE.#STORE_AVERAGE_RATING = :average_rating"
+                                "#SETTINGS.#APPS.#TYPE.#RATINGS.#RATING_COUNT = :rating_count," \
+                                "#SETTINGS.#APPS.#TYPE.#RATINGS.#AVERAGE_RATING = :average_rating," \
+                                "#SETTINGS.#APPS.#TYPE.#RATINGS.#ONE_STAR_RATING_COUNT = :one_star_rating_count," \
+                                "#SETTINGS.#APPS.#TYPE.#RATINGS.#TWO_STAR_RATING_COUNT = :two_star_rating_count," \
+                                "#SETTINGS.#APPS.#TYPE.#RATINGS.#THREE_STAR_RATING_COUNT = :three_star_rating_count," \
+                                "#SETTINGS.#APPS.#TYPE.#RATINGS.#FOUR_STAR_RATING_COUNT = :four_star_rating_count," \
+                                "#SETTINGS.#APPS.#TYPE.#RATINGS.#FIVE_STAR_RATING_COUNT = :five_star_rating_count"
       }
     )
 
