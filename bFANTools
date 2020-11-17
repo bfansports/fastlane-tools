@@ -753,6 +753,8 @@ def updateAppInReviewVersion(org_id, type, version)
           condition_expression: "#SETTINGS.#APPS = :null"
         }
       )
+    rescue Aws::DynamoDB::Errors::ConditionalCheckFailedException => e
+      # ignore
     rescue Aws::DynamoDB::Errors::ServiceError => e
       UI.error e.message
     end
