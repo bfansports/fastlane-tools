@@ -143,7 +143,7 @@ def writeVersionCode(file, versionCode)
   })
 end
 
-# Get testers list
+# Get testers list (String separated by commas)
 def getTestersList(org_id)
   begin
     UI.message("Getting s3://sportarchive-prod-creds/bfan_testers_list.txt")
@@ -155,7 +155,7 @@ def getTestersList(org_id)
     target: '/tmp/bfan_testers_list.txt')
   rescue StandardError => msg
     UI.error("Unable to get testers list from S3 from s3://sportarchive-prod-creds/bfan_testers_list.txt ")
-    return []
+    return ""
   end
 
   testers = File.read('/tmp/bfan_testers_list.txt').split(",")
