@@ -1055,7 +1055,7 @@ def getActiveOrgs()
   begin
     dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
 
-    response = dynamodb.scan(
+    items = dynamodb_full_scan(dynamodb,
       {
         table_name: "Organizations",
         projection_expression: "id, #SE, #ST",
@@ -1073,9 +1073,9 @@ def getActiveOrgs()
 
     orgs = []
     UI.important "Organization to BUILD:"
-    response.items.each do |item|
-      orgs.push(item["id"])
-      UI.important item["id"]
+    items.each do |item|
+      orgs.push item['id']
+      UI.important item['id']
     end
 
     return orgs
@@ -1095,7 +1095,7 @@ def getInStoreOrgs()
   begin
     dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"])
 
-    response = dynamodb.scan(
+    items = dynamodb_full_scan(dynamodb,
       {
         table_name: "Organizations",
         projection_expression: "id, #SE, #ST",
@@ -1113,7 +1113,7 @@ def getInStoreOrgs()
 
     orgs = []
     UI.important "Organization to BUILD:"
-    response.items.each do |item|
+    items.each do |item|
       if (item["status"]["active"] == true and \
           item["id"] != "bfanteam")
         orgs.push(item["id"])
@@ -1167,6 +1167,23 @@ def notifySlackClient(msg, org_id)
       'Build Date' => Time.new.to_s
     }
   )
+end
+
+# Returns the ALL the items from dynamodb.scan instead of the 1 MB limit.
+# https://gist.github.com/mmyoji/eafd3a6b7b5ef3569d1f6d4978fa0c64
+def dynamodb_full_scan(dynamodb = Aws::DynamoDB::Client.new(region: ENV["AWS_DEFAULT_REGION"]), scan_opts)
+  items = []
+  scan_output = dynamodb.scan(scan_opts)
+
+  loop do
+    items << scan_output.items
+
+    break unless (lek = scan_output.last_evaluated_key)
+
+    scan_output = dynamodb.scan scan_opts.merge(exclusive_start_key: lek)
+  end
+
+  return items.flatten
 end
 
 # Run after all
