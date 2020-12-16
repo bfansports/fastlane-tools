@@ -1131,16 +1131,20 @@ def getInStoreOrgs()
 end
 
 def notifySlack(msg, payload, success, channel)
+  slack_payload = {
+      'Build Date' => Time.new.to_s,
+      'Built by' => 'Fastlane',
+      'Message' => payload
+  }
+  if ENV["BITRISE_BUILD_URL"]
+    slack_payload['Bitrise URL'] = ENV["BITRISE_BUILD_URL"]
+  end
   slack(
     message: msg,
     success: success,
     slack_url: ENV["SLACK_BFAN_URL"],
     channel: channel,
-    payload: {
-      'Build Date' => Time.new.to_s,
-      'Built by' => 'Fastlane',
-      'Message' => payload
-    },
+    payload: slack_payload,
     default_payloads: []
   )
 end
