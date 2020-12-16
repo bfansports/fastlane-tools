@@ -1,6 +1,9 @@
 fastlane_require 'aws-sdk'
 fastlane_require 'open-uri'
 
+# Check if object is falsey (better than JavaScript)
+fastlane_require "active_support/core_ext/object/blank"
+
 ###
 ### CUSTOM FUNCTIONS to be used with Android and iOS Fastfiles
 ### See their Fastfile for more information
@@ -1194,16 +1197,21 @@ end
 # Used to detect the locales for screenshots
 # @param [String] org organisation id
 # @param [Array<String>] default_locales return value in case of an error
+# @param [String] metadata_path custom path where the locale folders are located
 # @return [Array<String>] list of locales
-def get_locales_from_metadata(org, default_locales = [])
+def get_locales_from_metadata(org, default_locales = [], metadata_path: "")
   locales = default_locales
 
   begin
-    directory = "./metadata/#{org}/"
+    if !metadata_path.blank?
+      directory = metadata_path
+    else
+      directory = "./metadata/#{org}/"
+    end
     locales = Dir.entries(directory).select {|entry| File.directory?(File.join(directory, entry)) and entry =~ /\D+-\D+/ }
   rescue SystemCallError => msg
     # Directory does not exist.
-    UI.error msg
+    UI.error("#{msg} (directory=#{directory})")
   end
 
   return locales
