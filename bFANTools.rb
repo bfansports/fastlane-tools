@@ -1134,6 +1134,7 @@ def getInStoreOrgs()
 end
 
 def notifySlack(msg, payload, success, channel)
+
   slack_payload = {
       'Build Date' => Time.new.to_s,
       'Built by' => 'Fastlane',
@@ -1142,17 +1143,28 @@ def notifySlack(msg, payload, success, channel)
   if ENV["BITRISE_BUILD_URL"]
     slack_payload['Bitrise URL'] = ENV["BITRISE_BUILD_URL"]
   end
-  slack(
-    message: msg,
-    success: success,
-    slack_url: ENV["SLACK_BFAN_URL"],
-    channel: channel,
-    payload: slack_payload,
-    default_payloads: []
-  )
+  if ENV.has_key?("SLACK_BFAN_URL")
+    slack(
+      message: msg,
+      success: success,
+      slack_url: ENV["SLACK_BFAN_URL"],
+      channel: channel,
+      payload: slack_payload,
+      default_payloads: []
+    )
+  else
+    UI.error "SLACK_BFAN_URL not set"
+    UI.error "Slack notification: #{msg}"
+    UI.error "Slack payload: #{payload}"
+  end
 end
 
 def notifySlackClient(msg, org_id)
+  unless ENV.has_key?("SLACK_CLIENT_URL")
+    UI.error "SLACK_CLIENT_URL not set"
+    UI.error "Slack notification: #{msg}"
+    return
+  end
   # Check the database if the client channel is different from the org_id
   # For example org_id stadefrancais has a slack channel named "#stadefrançaisparis"
   org = getOrg(org_id)
