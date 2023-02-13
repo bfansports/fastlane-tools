@@ -40,10 +40,10 @@ fastlane_require "active_support/core_ext/object/blank"
 # Load the proper configuration file
 def loadAndroidConfigFile(org_id)
   json_key = "./json_keys/generic-api.json"
-  if File.file?(Dir.pwd + "/json_keys/" + org_id + "-api.json")
-    json_key = "./json_keys/" + org_id + "-api.json"
+  if File.file?("#{Dir.pwd}/json_keys/#{org_id}-api.json")
+    json_key = "./json_keys/#{org_id}-api.json"
   end
-  UI.important("JSON_KEY used for Google API authentication: " + json_key)
+  UI.important("JSON_KEY used for Google API authentication: #{json_key}")
 
   return json_key
 end
@@ -58,11 +58,11 @@ def loadIOSConfigFile(org_id)
   end
 
   # Is there is a config for the target ?
-  if File.file?(path + "./FastlaneEnv/" + org_id + ".yaml")
-    file = org_id + ".yaml"
+  if File.file?("#{path}./FastlaneEnv/#{org_id}.yaml")
+    file = "#{org_id}.yaml"
   end
 
-  conf = YAML.load(File.read(path + "./FastlaneEnv/" + file))
+  conf = YAML.safe_load(File.read("#{path}./FastlaneEnv/#{file}"))
 
   UI.important("Config used: fastlane/FastlaneEnv/#{file}")
 
@@ -81,14 +81,14 @@ def getVersionCode(org_id, track)
     json_key = loadAndroidConfigFile(org_id)
 
     conf = JSON.parse(File.read(json_key))
-    bundle_id = "com.bfansports." + org_id + ".prod"
+    bundle_id = "com.bfansports.#{org_id}.prod"
     if conf.key?('bundle_id') && !conf['bundle_id'].nil?
       bundle_id = conf['bundle_id']
     end
 
-    UI.important("bundle_id: " + bundle_id)
+    UI.important("bundle_id: #{bundle_id}")
 
-    json_key = "./fastlane/" + json_key
+    json_key = "./fastlane/#{json_key}"
     versioncodes = google_play_track_version_codes(
       package_name: bundle_id,
       track: track,
@@ -141,7 +141,7 @@ def writeVersionCode(file, versionCode)
   obj = s3.put_object({
     body: versionCode.to_s,
     bucket: "sportarchive-prod-creds",
-    key: 'android-versioncode/' + file
+    key: "android-versioncode/#{file}"
   })
 end
 
@@ -164,13 +164,13 @@ def getTestersList(org_id)
 
   org = getOrg(org_id)
   if org && org['settings'] && org['settings']['apps'] && org['settings']['apps']['testers']
-    UI.message("Adding custom testers: " + org['settings']['apps']['testers'].join(','))
+    UI.message("Adding custom testers: #{org['settings']['apps']['testers'].join(',')}")
     testers |= org['settings']['apps']['testers']
   end
 
-  testers = testers.compact.reject(&:empty?).map! { |a| a.strip }
+  testers = testers.compact.reject(&:empty?).map!(&:strip)
   testers = testers.join(',')
-  UI.important("Testers: " + testers)
+  UI.important("Testers: #{testers}")
 
   return testers
 end
@@ -245,9 +245,9 @@ def downloadOrgImages(org_id, folder, asset_path)
 
   unless asset_path.nil?
     UI.important("asset_path provided. Inspecting path: #{asset_path}")
-    if File.file?(asset_path + "/ic_launcher.png")
-      sh("convert " + asset_path + "/ic_launcher.png -resize 512x512 " + "#{folder}/store_icon_android.png")
-      sh("convert " + asset_path + "/ic_launcher.png " + "#{folder}/store_icon_ios.jpg")
+    if File.file?("#{asset_path}/ic_launcher.png")
+      sh("convert #{asset_path}/ic_launcher.png -resize 512x512 #{folder}/store_icon_android.png")
+      sh("convert #{asset_path}/ic_launcher.png #{folder}/store_icon_ios.jpg")
       return
     end
   end
@@ -338,7 +338,7 @@ def getEnvVar
   end
 
   env_raw = /(dev|qa|prod)/.match(ENV.fetch('ENV', nil))[1]
-  UI.important("ENVIRONMENT: " + env_raw)
+  UI.important("ENVIRONMENT: #{env_raw}")
 
   if env_raw.nil? || env_raw.length == 0
     UI.user_error!("Your 'ENV' environment variable is set but doesn't contain 'dev', 'qa' or 'prod' as value.")
@@ -406,7 +406,7 @@ end
 def createAndroidChangeLogFile(versionCode, org, release_notes)
   UI.important("Setting up changelogs: #{versionCode}.txt - #{org}")
   Dir.foreach(Dir.pwd + "/metadata/#{org}/") do |local|
-    next if local == '.' or local == '..'
+    next if (local == '.') || (local == '..')
 
     if Dir.exist?(Dir.pwd + "/changelogs/#{local}")
       UI.important("Folder exists: #{local}. Copying ...")
@@ -427,7 +427,7 @@ end
 def createiOSChangeLogFile(org, release_notes)
   UI.important("Setting up changelogs: #{org}")
   Dir.foreach(Dir.pwd + "/metadata/#{org}/") do |local|
-    next if local == '.' or local == '..'
+    next if (local == '.') || (local == '..')
 
     if Dir.exist?(Dir.pwd + "/changelogs/#{local}")
       UI.important("Folder exists: #{local}. Copying ...")
@@ -588,8 +588,8 @@ def updateAppBetaVersion(org_id, type, env, version)
         "#APPS" => "apps",
         "#TYPE" => type,
         "#ENV"  => env,
-        "#ENV_VERSION" => env + "_version",
-        "#ENV_DATE" => env + "_version_date"
+        "#ENV_VERSION" => "#{env}_version",
+        "#ENV_DATE" => "#{env}_version_date"
       },
       expression_attribute_values: {
         ":env" => true,
@@ -1066,8 +1066,8 @@ def getInStoreOrgs
     orgs = []
     UI.important("Organization to BUILD:")
     items.each do |item|
-      next unless item["status"]["active"] == true and \
-                  item["id"] != "bfanteam"
+      next unless (item["status"]["active"] == true) && \
+                  (item["id"] != "bfanteam")
 
       orgs.push(item["id"])
       UI.important(item["id"])
@@ -1089,7 +1089,7 @@ def notifySlack(msg, payload, success, channel)
   if ENV["BITRISE_BUILD_URL"]
     slack_payload['Bitrise URL'] = ENV["BITRISE_BUILD_URL"]
   end
-  if ENV.has_key?("SLACK_BFAN_URL")
+  if ENV.key?("SLACK_BFAN_URL")
     slack(
       message: msg,
       success: success,
@@ -1106,7 +1106,7 @@ def notifySlack(msg, payload, success, channel)
 end
 
 def notifySlackClient(msg, org_id)
-  unless ENV.has_key?("SLACK_CLIENT_URL")
+  unless ENV.key?("SLACK_CLIENT_URL")
     UI.error("SLACK_CLIENT_URL not set")
     UI.error("Slack notification: #{msg}")
     return
