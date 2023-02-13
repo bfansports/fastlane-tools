@@ -1,8 +1,13 @@
-fastlane_require 'aws-sdk'
-fastlane_require 'open-uri'
-
-# Check if object is falsey (better than JavaScript)
-fastlane_require "active_support/core_ext/object/blank"
+require 'aws-sdk-ssm'
+require 'aws-sdk-s3'
+require 'aws-sdk-dynamodb'
+require 'fastlane'
+unless defined?(UI)
+  UI = FastlaneCore::UI
+end
+require 'open-uri'
+# Check if object is falsey
+require "active_support/core_ext/object/blank"
 
 ###
 ### CUSTOM FUNCTIONS to be used with Android and iOS Fastfiles

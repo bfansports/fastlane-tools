@@ -1,7 +1,9 @@
 source 'https://rubygems.org'
 
 gem "activesupport"
-gem "aws-sdk"
+gem "aws-sdk-dynamodb"
+gem "aws-sdk-s3"
+gem "aws-sdk-ssm"
 gem "fastlane"
 
 # Ruby programming tools
