@@ -1251,3 +1251,81 @@ def beforeAll(tag)
 
   return tag
 end
+
+# Sets the firebase credentials in the environment for the current project
+# Returns the path to the service account key file in case you need it
+# @param [String] org_id organisation id
+# @param [String] firebase_project_id firebase project id
+# @return [String] path to the service account key file
+def set_firebase_credentials(org_id: String, firebase_project_id: String)
+  if firebase_project_id.nil?
+    firebase_project_id = get_firebase_project_id(org_id)
+  end
+  if firebase_project_id.nil?
+    return nil
+  end
+
+  ssm = Aws::SSM::Client.new
+  begin
+    # Get the Google Cloud credentials from SSM Parameter Store
+    # and write them to a file
+    ssm_response = ssm.get_parameter({
+      name: "/google_cloud_ci_cd_service_account_generator/firebase_service_account_keys/#{firebase_project_id}",
+      with_decryption: true
+    })
+    service_account_key = ssm_response.parameter.value
+    service_account_key_file = File.expand_path("firebase_service_account_key.json")
+    File.write(service_account_key_file, service_account_key)
+    # Set the GOOGLE_APPLICATION_CREDENTIALS environment variable
+    # so that the firebase-tools can use the credentials
+    ENV["GOOGLE_APPLICATION_CREDENTIALS"] = service_account_key_file
+    # Unset the deprecated FIREBASE_TOKEN environment variable
+    ENV.delete("FIREBASE_TOKEN")
+    return service_account_key_file
+  rescue Aws::SSM::Errors::ServiceError => e
+    UI.error("Unable to get Google Cloud credentials for firebase project '#{firebase_project_id}'")
+    UI.error(e.message)
+    return nil
+  end
+end
+
+desc "Uploads the firebase hosting config to the specified firebase project"
+desc "This is used to ensure that the dynamic links work"
+desc "Usage: fastlane deploy_firebase_hosting [orgs:<org_id_1>,<org_id_2>,...] [all:true] [dry_run:true]"
+desc "orgs: List of organisations (default: bfanteam)"
+desc "all: Superseeds 'orgs' parameter. Will build all public orgs based on your AWS environment. (default: false)"
+desc "dry_run: Doesn't deploy firebase hosting (used for testing) (default: false)"
+desc "Note: You need firebase-tools (and Node.js) installed on your system,"
+desc "and an admin $FIREBASE_TOKEN in your environment."
+desc "To install firebase-tools, run `npm install -g firebase-tools`"
+lane :deploy_firebase_hosting do |options|
+  if options[:all].to_s.casecmp("true").zero?
+    orgs = getActiveOrgs
+  elsif options[:orgs]
+    orgs = options[:orgs].split(",")
+  else
+    orgs = ['bfanteam']
+  end
+
+  orgs.each do |org|
+    project_id = get_firebase_project_id(org)
+    if project_id
+      command = "cd firebase; firebase deploy --only hosting --project #{project_id}"
+      if options[:dry_run].to_s.casecmp("true").zero?
+        UI.important("DRY_RUN ENABLED skipping #{command}")
+      else
+        begin
+          set_firebase_credentials(firebase_project_id: project_id)
+          sh(command)
+        rescue StandardError => e
+          UI.error(e)
+          UI.error("Firebase deploy failed for #{project_id}, skipping.")
+          UI.error("The issue is probably that the Google Cloud credentials are not set up correctly.")
+          UI.error("See https://github.com/bfansports/google_cloud_ci_cd_service_account_generator")
+        end
+      end
+    else
+      UI.error("Can't deploy Firebase Hosting for #{org}, no Project ID found.")
+    end
+  end
+end
