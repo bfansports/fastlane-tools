@@ -290,6 +290,7 @@ GEM
 
 PLATFORMS
   x86_64-darwin-21
+  x86_64-darwin-22
 
 DEPENDENCIES
   activesupport
@@ -304,4 +305,4 @@ DEPENDENCIES
   solargraph
 
 BUNDLED WITH
-   2.4.6
+   2.4.7
