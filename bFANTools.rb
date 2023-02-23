@@ -354,7 +354,7 @@ end
 
 # Get past gitTag. 'back' is how many tags back you want to go
 def getPastGitTag(back = 1)
-  return sh("git tag -l | sort -n -t. -k1,1 -k2,2 -k3,3 -r | egrep -v 'qa|prod' | head -#{back} | tail -1 | tr -d '\n'")
+  return sh("git ls-remote --tags --quiet | cut -d '/' -f3 | ggrep -E '^([0-9]+).([0-9]+).([0-9]+)$' | sort -n -t. -k1,1 -k2,2 -k3,3 -r | gsed -n '#{back},1p' | tr -d '\n'")
 end
 
 # Get Commit ID for a specific tag
@@ -1225,9 +1225,6 @@ end
 def beforeAll(tag)
   UI.important("Setup git for the build")
 
-  # Get all tags for  project
-  sh("pwd && git fetch --all && git fetch --all --tags -f")
-
   # get tag
   if tag.nil? || tag == "develop"
     # we get the last commit
@@ -1237,6 +1234,14 @@ def beforeAll(tag)
     # we get the last TAG
     tag = getPastGitTag
     UI.important("No TAG provided to build. Using the 'master' latest TAG: #{tag}")
+  end
+
+  if /^[0-9]+\.[0-9]+(\.[0-9]*)*$/.match(tag).nil?
+    # Fetch the branch in case it's a shallow clone
+    sh("git fetch origin #{tag}")
+  else
+    # Fetch the tag in case it's a shallow clone
+    sh("git fetch origin refs/tags/#{tag}:refs/tags/#{tag}")
   end
 
   # Checkout the tag or branch
