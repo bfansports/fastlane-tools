@@ -354,7 +354,10 @@ end
 
 # Get past gitTag. 'back' is how many tags back you want to go
 def getPastGitTag(back = 1)
-  return sh("git ls-remote --tags --quiet | cut -d '/' -f3 | ggrep -E '^([0-9]+).([0-9]+).([0-9]+)$' | sort -n -t. -k1,1 -k2,2 -k3,3 -r | gsed -n '#{back},1p' | tr -d '\n'")
+  tags = sh("git ls-remote --tags --quiet | cut -d '/' -f3").split
+  semver_tags = tags.grep(/^[0-9]+.[0-9]+.[0-9]+$/) # only keep semver tags
+  sorted_semver_tags = semver_tags.sort_by { |tag| Gem::Version.new(tag) }.reverse # sort by semver
+  return sorted_semver_tags[back - 1]
 end
 
 # Get Commit ID for a specific tag
