@@ -354,7 +354,7 @@ end
 
 # Get past gitTag. 'back' is how many tags back you want to go
 def getPastGitTag(back = 1)
-  tags = sh("git ls-remote --tags --quiet | cut -d '/' -f3").split
+  tags = sh("git ls-remote --tags --quiet | cut -d '/' -f3", log: false).split
   semver_tags = tags.grep(/^[0-9]+.[0-9]+.[0-9]+$/) # only keep semver tags
   sorted_semver_tags = semver_tags.sort_by { |tag| Gem::Version.new(tag) }.reverse # sort by semver
   return sorted_semver_tags[back - 1]
