@@ -352,9 +352,20 @@ def getEnvVar
   return env_raw
 end
 
+# Fetch from upstream, or origin if no upstream
+def getMainGitRemote
+  remotes = sh("git remote", log: false).split
+  if remotes.include?("upstream")
+    return "upstream"
+  else
+    return "origin"
+  end
+end
+
 # Get past gitTag. 'back' is how many tags back you want to go
 def getPastGitTag(back = 1)
-  tags = sh("git ls-remote --tags --quiet | cut -d '/' -f3", log: false).split
+  remote = getMainGitRemote
+  tags = sh("git ls-remote --tags --quiet #{remote} | cut -d '/' -f3", log: false).split
   semver_tags = tags.grep(/^[0-9]+.[0-9]+.[0-9]+$/) # only keep semver tags
   sorted_semver_tags = semver_tags.sort_by { |tag| Gem::Version.new(tag) }.reverse # sort by semver
   return sorted_semver_tags[back - 1]
@@ -1239,12 +1250,14 @@ def beforeAll(tag)
     UI.important("No TAG provided to build. Using the 'master' latest TAG: #{tag}")
   end
 
+  remote = getMainGitRemote
+
   if /^[0-9]+\.[0-9]+(\.[0-9]*)*$/.match(tag).nil?
     # Fetch the branch in case it's a shallow clone
-    sh("git fetch origin #{tag}")
+    sh("git fetch #{remote} #{tag}")
   else
     # Fetch the tag in case it's a shallow clone
-    sh("git fetch origin refs/tags/#{tag}:refs/tags/#{tag}")
+    sh("git fetch #{remote} refs/tags/#{tag}:refs/tags/#{tag}")
   end
 
   # Checkout the tag or branch
