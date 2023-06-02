@@ -261,39 +261,39 @@ def downloadOrgImages(org_id, folder, asset_path)
   # Splash
   if org['branding'] && org['branding']['splash_screen']
     UI.important("splash_screen")
-    File.binwrite("#{folder}/splash_image.jpg", open(org['branding']['splash_screen']).read)
+    File.binwrite("#{folder}/splash_image.jpg", URI.open(org['branding']['splash_screen']).read)
   end
 
   # Launcher
   if org['branding'] && org['branding']['android_launch_icon']
     UI.important("android_launch_icon")
-    File.binwrite("#{folder}/android_launch_icon.png", open(org['branding']['android_launch_icon']).read)
+    File.binwrite("#{folder}/android_launch_icon.png", URI.open(org['branding']['android_launch_icon']).read)
   end
   if org['branding'] && org['branding']['ios_launch_icon']
     UI.important("ios_launch_icon")
-    File.binwrite("#{folder}/ios_launch_icon.png", open(org['branding']['ios_launch_icon']).read)
+    File.binwrite("#{folder}/ios_launch_icon.png", URI.open(org['branding']['ios_launch_icon']).read)
   end
 
   # Notifications
   if org['branding'] && org['branding']['notification_icon']
     UI.important("notification_icon")
-    File.binwrite("#{folder}/notification_icon.png", open(org['branding']['notification_icon']).read)
+    File.binwrite("#{folder}/notification_icon.png", URI.open(org['branding']['notification_icon']).read)
   end
 
   # Store icon
   if org['branding'] && org['branding']['store_icon']
     UI.important("store_icon")
-    File.binwrite("#{folder}/store_icon.png", open(org['branding']['store_icon']).read)
+    File.binwrite("#{folder}/store_icon.png", URI.open(org['branding']['store_icon']).read)
   end
   # Store icon android
   if org['branding'] && org['branding']['store_icon_android']
     UI.important("store_icon_android")
-    File.binwrite("#{folder}/store_icon_android.png", open(org['branding']['store_icon_android']).read)
+    File.binwrite("#{folder}/store_icon_android.png", URI.open(org['branding']['store_icon_android']).read)
   end
   # Store icon ios
   if org['branding'] && org['branding']['store_icon_ios']
     UI.important("store_icon_ios")
-    File.binwrite("#{folder}/store_icon_ios.jpg", open(org['branding']['store_icon_ios']).read)
+    File.binwrite("#{folder}/store_icon_ios.jpg", URI.open(org['branding']['store_icon_ios']).read)
   end
 end
 
