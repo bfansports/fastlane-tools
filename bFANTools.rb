@@ -298,7 +298,7 @@ def downloadOrgImages(org_id, folder, asset_path)
 end
 
 # Download org image assets into local folder
-def downloadOrgAppIcons(org_id, folder)
+def downloadOrgAppIcon(org_id, folder)
     org = getOrg(org_id)
 
     unless org
