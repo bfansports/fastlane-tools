@@ -325,7 +325,7 @@ def getPastTagLogs(past1 = 1, past2 = 2, filter = true)
   # use those keywords for your commit to be stealth in the build change logs
   to_exec = "git log --oneline #{past1}...#{past2}"
   if filter == true
-    to_exec += " | { egrep -vi 'fastlane|skip_ci|Merge' || true; }"
+    to_exec += " | { grep -Evi 'fastlane|skip_ci|Merge' || true; }"
   end
   changes = sh(to_exec)
   changes = changes[0...12_000]
@@ -408,11 +408,6 @@ def getLastGitRemote
   return sh("git remote | tail -1 | tr -d '\n'")
 end
 
-# Get TAG associated to a release
-def getReleaseTag(release)
-  return sh("git rev-parse qa | xargs git tag --points-at | egrep -v 'qa|prod' | tr -d '\n'")
-end
-
 # Push to all remotes
 def pushToGitRemotes(branch = 'develop', force = 0)
   if force
@@ -486,12 +481,30 @@ end
 
 # Get the next tag version
 def getNextTagVersion
-  current = sh("git fetch -q -f --all --tags > /dev/null 2>&1 && git tag -l | sort -n -t. -k1,1 -k2,2 -k3,3 -r | egrep -v 'qa|prod' | head -1 | tail -1 | tr -d '\n'")
-  chunks = current.split('.')
-  chunks[2] = chunks[2].to_i + 1
+  # Fetch tags
+  unless system("git fetch -q -f --all --tags > /dev/null 2>&1")
+    raise "Error fetching tags"
+  end
 
-  return "#{chunks[0]}.#{chunks[1]}.#{chunks[2]}"
+  # Get the latest tag, excluding 'qa' and 'prod', and handle potential errors
+  current = `git tag -l | sort -n -t. -k1,1 -k2,2 -k3,3 | grep -E -v 'dev|qa|prod' | tail -1 | tr -d '\n'`
+  if current.empty? || !$?.success?
+    raise "No suitable tags found or error in processing tags"
+  end
+
+  # Remove any non-numeric characters at the beginning of the tag
+  current.gsub!(/\A[^0-9]+/, '')
+
+  # Split into major, minor, patch
+  chunks = current.split('.').map(&:to_i)
+
+  # Increment the patch version
+  chunks[-1] += 1
+
+  # Join back into a string and return
+  "#{chunks.join('.')}"
 end
+
 
 # Setup react dependencies
 # def buildReact(react_tag, env, platform)
