@@ -188,6 +188,8 @@ GEM
     naturally (2.2.1)
     nokogiri (1.13.10-x86_64-darwin)
       racc (~> 1.4)
+    nokogiri (1.13.10-x86_64-linux)
+      racc (~> 1.4)
     optparse (0.1.1)
     os (1.1.4)
     parallel (1.22.1)
@@ -291,6 +293,7 @@ GEM
 PLATFORMS
   x86_64-darwin-21
   x86_64-darwin-22
+  x86_64-linux
 
 DEPENDENCIES
   activesupport

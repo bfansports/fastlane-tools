@@ -297,6 +297,28 @@ def downloadOrgImages(org_id, folder, asset_path)
   end
 end
 
+# Download org image assets into local folder
+def downloadOrgAppIcon(org_id, folder)
+    org = getOrg(org_id)
+
+    unless org
+      raise("No org #{org_id} found in the database! Aborting...")
+    end
+
+    `mkdir -p #{folder}`
+
+    UI.important("Downloading images into #{folder}")
+    # Launcher
+    if org['branding'] && org['branding']['android_launch_icon']
+      UI.important("android_launch_icon")
+      File.binwrite("#{folder}/android_launch_icon.png", URI.open(org['branding']['android_launch_icon']).read)
+    end
+    if org['branding'] && org['branding']['ios_launch_icon']
+      UI.important("ios_launch_icon")
+      File.binwrite("#{folder}/ios_launch_icon.png", URI.open(org['branding']['ios_launch_icon']).read)
+    end
+  end
+
 # Get the commit descs between the two latest tags
 def getPastTagLogs(past1 = 1, past2 = 2, filter = true)
   # only return git logs that don't contain fastlane or private
