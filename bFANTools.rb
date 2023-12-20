@@ -604,6 +604,7 @@ def updateAppBetaVersion(org_id, type, env, version)
       }
     )
   rescue Aws::DynamoDB::Errors::ServiceError => e
+		UI.important("This is a test print from Chase")
     UI.important("Skipping setting 'settings.apps' in org object")
 
 		begin
