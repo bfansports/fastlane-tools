@@ -605,58 +605,58 @@ def updateAppBetaVersion(org_id, type, env, version)
     )
   rescue Aws::DynamoDB::Errors::ServiceError => e
     UI.important("Skipping setting 'settings.apps' in org object")
+
+		begin
+			# Making sure "settings.apps.type is init correctly"
+			response = dynamodb.update_item(
+				{
+					table_name: "Organizations",
+					key: {
+						"id" => org_id
+					},
+					expression_attribute_names: {
+						"#SETTINGS" => "settings",
+						"#APPS" => "apps",
+						"#TYPE" => type
+					},
+					expression_attribute_values: {
+						":empty" => {}
+					},
+					update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
+				}
+			)
+		rescue Aws::DynamoDB::Errors::ServiceError => e
+			UI.important("Skipping setting 'settings.apps.#{type}' in org object")
+
+			# updating the values
+			response = dynamodb.update_item(
+				{
+					table_name: "Organizations",
+					key: {
+						"id" => org_id
+					},
+					expression_attribute_names: {
+						"#SETTINGS" => "settings",
+						"#APPS" => "apps",
+						"#TYPE" => type,
+						"#ENV"  => env,
+						"#ENV_VERSION" => "#{env}_version",
+						"#ENV_DATE" => "#{env}_version_date"
+					},
+					expression_attribute_values: {
+						":env" => true,
+						":version" => version,
+						":date"    => Time.now.strftime("%d/%m/%Y")
+					},
+					update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV = :env," \
+														"#SETTINGS.#APPS.#TYPE.#ENV_VERSION = :version," \
+														"#SETTINGS.#APPS.#TYPE.#ENV_DATE = :date"
+				}
+			)
+
+			return true
+		end
   end
-
-  begin
-    # Making sure "settings.apps.type is init correctly"
-    response = dynamodb.update_item(
-      {
-        table_name: "Organizations",
-        key: {
-          "id" => org_id
-        },
-        expression_attribute_names: {
-          "#SETTINGS" => "settings",
-          "#APPS" => "apps",
-          "#TYPE" => type
-        },
-        expression_attribute_values: {
-          ":empty" => {}
-        },
-        update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
-      }
-    )
-  rescue Aws::DynamoDB::Errors::ServiceError => e
-    UI.important("Skipping setting 'settings.apps.#{type}' in org object")
-  end
-
-  # updating the values
-  response = dynamodb.update_item(
-    {
-      table_name: "Organizations",
-      key: {
-        "id" => org_id
-      },
-      expression_attribute_names: {
-        "#SETTINGS" => "settings",
-        "#APPS" => "apps",
-        "#TYPE" => type,
-        "#ENV"  => env,
-        "#ENV_VERSION" => "#{env}_version",
-        "#ENV_DATE" => "#{env}_version_date"
-      },
-      expression_attribute_values: {
-        ":env" => true,
-        ":version" => version,
-        ":date"    => Time.now.strftime("%d/%m/%Y")
-      },
-      update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV = :env," \
-                         "#SETTINGS.#APPS.#TYPE.#ENV_VERSION = :version," \
-                         "#SETTINGS.#APPS.#TYPE.#ENV_DATE = :date"
-    }
-  )
-
-  return true
 rescue Aws::DynamoDB::Errors::ServiceError => e
   UI.error(e.message)
   return false
@@ -688,66 +688,66 @@ def updateAppProdVersion(org_id, type, version)
     )
   rescue Aws::DynamoDB::Errors::ServiceError => e
     UI.important("Skipping setting 'settings.apps' in org object")
+
+    begin
+    	# Making sure "settings.apps.{type} is init correctly"
+			response = dynamodb.update_item(
+					{
+					table_name: "Organizations",
+					key: {
+							"id" => org_id
+					},
+					expression_attribute_names: {
+							"#SETTINGS" => "settings",
+							"#APPS" => "apps",
+							"#TYPE" => type
+					},
+					expression_attribute_values: {
+							":empty" => {}
+					},
+					update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
+					}
+			)
+    rescue Aws::DynamoDB::Errors::ServiceError => e
+    	UI.important("Skipping setting 'settings.apps.#{type}' in org object")
+
+			# Setting the dates
+			response = dynamodb.update_item(
+				{
+					table_name: "Organizations",
+					key: {
+						"id" => org_id
+					},
+					expression_attribute_names: {
+						"#SETTINGS" => "settings",
+						"#IN_STORE" => "in_stores",
+						"#APPS" => "apps",
+						"#TYPE" => type,
+						"#ENV"  => "prod",
+						"#STORE_VERSION" => "store_version",
+						"#STORE_DATE" => "store_version_date",
+						"#VERSION_IN_REVIEW" => "version_in_review",
+						"#VERSION_IN_REVIEW_DATE" => "version_in_review_date"
+					},
+					expression_attribute_values: {
+						":env" => true,
+						":store" => true,
+						":version" => version,
+						":date" => Time.now.strftime("%d/%m/%Y"),
+						":null" => nil
+					},
+					update_expression: "SET #SETTINGS.#IN_STORE = :store," \
+														"#SETTINGS.#APPS.#TYPE.#ENV = :env," \
+														"#SETTINGS.#APPS.#TYPE.#STORE_VERSION = :version," \
+														"#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date," \
+														"#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :null," \
+														"#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :null"
+				}
+			)
+
+			return true
+    end
   end
-
-  begin
-    # Making sure "settings.apps.{type} is init correctly"
-    response = dynamodb.update_item(
-      {
-        table_name: "Organizations",
-        key: {
-          "id" => org_id
-        },
-        expression_attribute_names: {
-          "#SETTINGS" => "settings",
-          "#APPS" => "apps",
-          "#TYPE" => type
-        },
-        expression_attribute_values: {
-          ":empty" => {}
-        },
-        update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
-      }
-    )
-  rescue Aws::DynamoDB::Errors::ServiceError => e
-    UI.important("Skipping setting 'settings.apps.#{type}' in org object")
-  end
-
-  # Setting the dates
-  response = dynamodb.update_item(
-    {
-      table_name: "Organizations",
-      key: {
-        "id" => org_id
-      },
-      expression_attribute_names: {
-        "#SETTINGS" => "settings",
-        "#IN_STORE" => "in_stores",
-        "#APPS" => "apps",
-        "#TYPE" => type,
-        "#ENV"  => "prod",
-        "#STORE_VERSION" => "store_version",
-        "#STORE_DATE" => "store_version_date",
-        "#VERSION_IN_REVIEW" => "version_in_review",
-        "#VERSION_IN_REVIEW_DATE" => "version_in_review_date"
-      },
-      expression_attribute_values: {
-        ":env" => true,
-        ":store" => true,
-        ":version" => version,
-        ":date" => Time.now.strftime("%d/%m/%Y"),
-        ":null" => nil
-      },
-      update_expression: "SET #SETTINGS.#IN_STORE = :store," \
-                         "#SETTINGS.#APPS.#TYPE.#ENV = :env," \
-                         "#SETTINGS.#APPS.#TYPE.#STORE_VERSION = :version," \
-                         "#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date," \
-                         "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :null," \
-                         "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :null"
-    }
-  )
-
-  return true
 rescue Aws::DynamoDB::Errors::ServiceError => e
   UI.error(e.message)
   return false
