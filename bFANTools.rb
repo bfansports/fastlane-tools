@@ -550,7 +550,7 @@ def updateAppBetaVersion(org_id, type, env, version)
 
   begin
     # Making sure "settings.apps is init correctly"
-    response = dynamodb.update_item(
+    dynamodb.update_item(
       {
         table_name: "Organizations",
         key: {
@@ -570,6 +570,51 @@ def updateAppBetaVersion(org_id, type, env, version)
     )
   rescue Aws::DynamoDB::Errors::ServiceError => e
     UI.important("Skipping setting 'settings.apps' in org object")
+
+    dynamodb.update_item(
+      {
+          table_name: "Organizations",
+          key: {
+              "id" => org_id
+          },
+          expression_attribute_names: {
+              "#SETTINGS" => "settings",
+              "#APPS" => "apps",
+              "#TYPE" => type
+          },
+          expression_attribute_values: {
+              ":empty" => {}
+          },
+          update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
+          }
+    )
+
+    dynamodb.update_item(
+      {
+          table_name: "Organizations",
+          key: {
+          "id" => org_id
+          },
+          expression_attribute_names: {
+          "#SETTINGS" => "settings",
+          "#APPS" => "apps",
+          "#TYPE" => type,
+          "#ENV"  => env,
+          "#ENV_VERSION" => "#{env}_version",
+          "#ENV_DATE" => "#{env}_version_date"
+          },
+          expression_attribute_values: {
+          ":env" => true,
+          ":version" => version,
+          ":date"    => Time.now.strftime("%d/%m/%Y")
+          },
+          update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV = :env," \
+                             "#SETTINGS.#APPS.#TYPE.#ENV_VERSION = :version," \
+                             "#SETTINGS.#APPS.#TYPE.#ENV_DATE = :date"
+      }
+    )
+
+    return true
   end
 
   begin
