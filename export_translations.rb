@@ -319,7 +319,7 @@ def write_android_file(filepath, lines)
 
         ## generate final file
         content = '<?xml version="1.0" encoding="utf-8"?>'
-        content = content + "<!-- File generated on " + formatted_time + " -->"
+        # content = content + "<!-- File generated on " + formatted_time + " -->"
         content = content + '<resources xmlns:tools="http://schemas.android.com/tools">' + items.join('') + '</resources>'
         doc_final = Nokogiri::XML(content, &:noblanks)
         doc_final.write_to(file, indent: 2, save_with: Nokogiri::XML::Node::SaveOptions::FORMAT)
@@ -336,7 +336,7 @@ def write_ios_files(data)
             File.open(filepath, "w") do |file|
                 current_time = Time.now
                 formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
-                content = "// File generated on " + formatted_time + "\n"
+                # content = "// File generated on " + formatted_time + "\n"
                 content = content + lines.sort.join("\n")
                 file.write(content)
             end
