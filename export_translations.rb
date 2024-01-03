@@ -337,6 +337,7 @@ def write_ios_files(data)
                 current_time = Time.now
                 formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
                 # content = "// File generated on " + formatted_time + "\n"
+                content = ""
                 content = content + lines.sort.join("\n")
                 file.write(content)
             end
