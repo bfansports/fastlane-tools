@@ -743,88 +743,81 @@ def updateAppProdVersion(org_id, app_type, version)
 end
 
 # Update app in_store flag in org
-def updateAppInReviewVersion(org_id, type, version)
-  dynamodb = Aws::DynamoDB::Client.new(region: ENV.fetch("AWS_DEFAULT_REGION", 'eu-west-1'))
+def updateAppInReviewVersion(org_id, app_type, version)
+  dynamodb = Aws::DynamoDB::Client.new(region: ENV.fetch('AWS_DEFAULT_REGION', 'eu-west-1'))
+
+  table_name = 'Organizations'
+  time_now = Time.now.strftime('%d/%m/%Y')
 
   begin
-    # Making sure "settings.apps is init correctly"
-    response = dynamodb.update_item(
-      {
-        table_name: "Organizations",
-        key: {
-          "id" => org_id
-        },
-        expression_attribute_names: {
-          "#SETTINGS" => "settings",
-          "#APPS" => "apps"
-        },
-        expression_attribute_values: {
-          ":null" => nil,
-          ":empty" => {}
-        },
-        update_expression: "SET #SETTINGS.#APPS = :empty",
-        condition_expression: "#SETTINGS.#APPS = :null"
-      }
-    )
-  rescue Aws::DynamoDB::Errors::ConditionalCheckFailedException => e
-    # ignore
-  rescue Aws::DynamoDB::Errors::ServiceError => e
-    UI.error(e.message)
-  end
-
-  begin
-    # Making sure "settings.apps.{type} is init correctly"
-    response = dynamodb.update_item(
-      {
-        table_name: "Organizations",
-        key: {
-          "id" => org_id
-        },
-        expression_attribute_names: {
-          "#SETTINGS" => "settings",
-          "#APPS" => "apps",
-          "#TYPE" => type
-        },
-        expression_attribute_values: {
-          ":empty" => {}
-        },
-        update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
-      }
-    )
-  rescue Aws::DynamoDB::Errors::ServiceError => e
-    UI.error(e.message)
-  end
-
-  # Setting the dates
-  response = dynamodb.update_item(
-    {
-      table_name: "Organizations",
-      key: {
-        "id" => org_id
-      },
+    # Initialize 'settings' if it doesn't exist
+    dynamodb.update_item({
+      table_name: table_name,
+      key: { 'id' => org_id },
+      update_expression: 'SET #SETTINGS = if_not_exists(#SETTINGS, :empty_map)',
       expression_attribute_names: {
-        "#SETTINGS" => "settings",
-        "#APPS" => "apps",
-        "#TYPE" => type,
-        "#ENV"  => "prod",
-        "#VERSION_IN_REVIEW" => "version_in_review",
-        "#VERSION_IN_REVIEW_DATE" => "version_in_review_date"
+        '#SETTINGS' => 'settings'
       },
       expression_attribute_values: {
-        ":env" => true,
-        ":version" => version,
-        ":date" => Time.now.strftime("%d/%m/%Y")
-      },
-      update_expression: "SET #SETTINGS.#APPS.#TYPE.#ENV = :env," \
-                         "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :version," \
-                         "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :date"
-    }
-  )
+        ':empty_map' => {}
+      }
+    })
 
-  return true
-rescue Aws::DynamoDB::Errors::ServiceError => e
-  UI.error(e.message)
-  return false
+    # Initialize 'settings.apps' if it doesn't exist
+    dynamodb.update_item({
+      table_name: table_name,
+      key: { 'id' => org_id },
+      update_expression: 'SET #SETTINGS.#APPS = if_not_exists(#SETTINGS.#APPS, :empty_map)',
+      expression_attribute_names: {
+        '#SETTINGS' => 'settings',
+        '#APPS' => 'apps'
+      },
+      expression_attribute_values: {
+        ':empty_map' => {}
+      }
+    })
+
+    # Initialize 'settings.apps.{app_type}' if it doesn't exist
+    dynamodb.update_item({
+      table_name: table_name,
+      key: { 'id' => org_id },
+      update_expression: 'SET #SETTINGS.#APPS.#TYPE = if_not_exists(#SETTINGS.#APPS.#TYPE, :empty_map)',
+      expression_attribute_names: {
+        '#SETTINGS' => 'settings',
+        '#APPS' => 'apps',
+        '#TYPE' => app_type
+      },
+      expression_attribute_values: {
+        ':empty_map' => {}
+      }
+    })
+
+    # Update in_review version for the app
+    dynamodb.update_item({
+      table_name: table_name,
+      key: { 'id' => org_id },
+      update_expression: 'SET #SETTINGS.#APPS.#TYPE.#ENV = :env, ' \
+                          '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :version, ' \
+                          '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :date',
+      expression_attribute_names: {
+        '#SETTINGS' => 'settings',
+        '#APPS' => 'apps',
+        '#TYPE' => app_type,
+        '#ENV' => 'prod',
+        '#VERSION_IN_REVIEW' => 'version_in_review',
+        '#VERSION_IN_REVIEW_DATE' => 'version_in_review_date'
+      },
+      expression_attribute_values: {
+        ':env' => true,
+        ':version' => version,
+        ':date' => time_now
+      }
+    })
+    true
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    UI.error(e.message)
+    false
+  end
 end
 
 # Update the state of the store version in org
