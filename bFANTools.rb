@@ -657,99 +657,94 @@ rescue Aws::DynamoDB::Errors::ServiceError => e
 end
 
 # Update app in_store flag in org
-def updateAppProdVersion(org_id, type, version)
+def updateAppProdVersion(org_id, app_type, version)
   dynamodb = Aws::DynamoDB::Client.new(region: ENV.fetch("AWS_DEFAULT_REGION", nil))
 
+  table_name = 'Organizations'
+  time_now = Time.now.strftime('%d/%m/%Y')
+
   begin
-    # Making sure "settings.apps is init correctly"
-    response = dynamodb.update_item(
-      {
-        table_name: "Organizations",
-        key: {
-          "id" => org_id
-        },
-        expression_attribute_names: {
-          "#SETTINGS" => "settings",
-          "#APPS" => "apps"
-        },
-        expression_attribute_values: {
-          ":null" => nil,
-          ":empty" => {}
-        },
-        update_expression: "SET #SETTINGS.#APPS = :empty",
-        condition_expression: "#SETTINGS.#APPS = :null"
+    # Initialize 'settings' if it doesn't exist
+    dynamodb.update_item({
+      table_name: table_name,
+      key: { 'id' => org_id },
+      update_expression: 'SET #SETTINGS = if_not_exists(#SETTINGS, :empty_map)',
+      expression_attribute_names: {
+        '#SETTINGS' => 'settings'
+      },
+      expression_attribute_values: {
+        ':empty_map' => {}
       }
-    )
+    })
+
+    # Initialize 'settings.apps' if it doesn't exist
+    dynamodb.update_item({
+      table_name: table_name,
+      key: { 'id' => org_id },
+      update_expression: 'SET #SETTINGS.#APPS = if_not_exists(#SETTINGS.#APPS, :empty_map)',
+      expression_attribute_names: {
+        '#SETTINGS' => 'settings',
+        '#APPS' => 'apps'
+      },
+      expression_attribute_values: {
+        ':empty_map' => {}
+      }
+    })
+
+    # Initialize 'settings.apps.{app_type}' if it doesn't exist
+    dynamodb.update_item({
+      table_name: table_name,
+      key: { 'id' => org_id },
+      update_expression: 'SET #SETTINGS.#APPS.#TYPE = if_not_exists(#SETTINGS.#APPS.#TYPE, :empty_map)',
+      expression_attribute_names: {
+        '#SETTINGS' => 'settings',
+        '#APPS' => 'apps',
+        '#TYPE' => app_type
+      },
+      expression_attribute_values: {
+        ':empty_map' => {}
+      }
+    })
+
+    # Update settings for the app, including the in_store flag
+    dynamodb.update_item({
+      table_name: table_name,
+      key: { 'id' => org_id },
+      update_expression: 'SET #SETTINGS.#IN_STORES = :store, ' \
+                          '#SETTINGS.#APPS.#TYPE.#ENV = :env, ' \
+                          '#SETTINGS.#APPS.#TYPE.#STORE_VERSION = :version, ' \
+                          '#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date, ' \
+                          '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :null, ' \
+                          '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :null',
+      expression_attribute_names: {
+        '#SETTINGS' => 'settings',
+        '#IN_STORES' => 'in_stores',
+        '#APPS' => 'apps',
+        '#TYPE' => app_type,
+        '#ENV' => 'prod',
+        '#STORE_VERSION' => 'store_version',
+        '#STORE_DATE' => 'store_version_date',
+        '#VERSION_IN_REVIEW' => 'version_in_review',
+        '#VERSION_IN_REVIEW_DATE' => 'version_in_review_date'
+      },
+      expression_attribute_values: {
+        ':store' => true,
+        ':env' => true,
+        ':version' => version,
+        ':date' => time_now,
+        ':null' => nil
+      }
+    })
+    true
   rescue Aws::DynamoDB::Errors::ServiceError => e
-    UI.important("Skipping setting 'settings.apps' in org object")
-
-    begin
-      # Making sure "settings.apps.{type} is init correctly"
-      response = dynamodb.update_item(
-        {
-        table_name: "Organizations",
-        key: {
-            "id" => org_id
-        },
-        expression_attribute_names: {
-            "#SETTINGS" => "settings",
-            "#APPS" => "apps",
-            "#TYPE" => type
-        },
-        expression_attribute_values: {
-            ":empty" => {}
-        },
-        update_expression: "SET #SETTINGS.#APPS.#TYPE =  if_not_exists(#SETTINGS.#APPS.#TYPE, :empty)"
-        }
-      )
-    rescue Aws::DynamoDB::Errors::ServiceError => e
-      UI.important("Skipping setting 'settings.apps.#{type}' in org object")
-
-      # Setting the dates
-      response = dynamodb.update_item(
-        {
-          table_name: "Organizations",
-          key: {
-            "id" => org_id
-          },
-          expression_attribute_names: {
-            "#SETTINGS" => "settings",
-            "#IN_STORE" => "in_stores",
-            "#APPS" => "apps",
-            "#TYPE" => type,
-            "#ENV"  => "prod",
-            "#STORE_VERSION" => "store_version",
-            "#STORE_DATE" => "store_version_date",
-            "#VERSION_IN_REVIEW" => "version_in_review",
-            "#VERSION_IN_REVIEW_DATE" => "version_in_review_date"
-          },
-          expression_attribute_values: {
-            ":env" => true,
-            ":store" => true,
-            ":version" => version,
-            ":date" => Time.now.strftime("%d/%m/%Y"),
-            ":null" => nil
-          },
-          update_expression: "SET #SETTINGS.#IN_STORE = :store," \
-                             "#SETTINGS.#APPS.#TYPE.#ENV = :env," \
-                             "#SETTINGS.#APPS.#TYPE.#STORE_VERSION = :version," \
-                             "#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date," \
-                             "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :null," \
-                             "#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :null"
-        }
-      )
-
-      return true
-    end
+    UI.error(e.message)
+    false
   end
-rescue Aws::DynamoDB::Errors::ServiceError => e
-  UI.error(e.message)
-  return false
 end
 
 # Update app in_store flag in org
 def updateAppInReviewVersion(org_id, type, version)
-  dynamodb = Aws::DynamoDB::Client.new(region: ENV.fetch("AWS_DEFAULT_REGION", nil))
+  dynamodb = Aws::DynamoDB::Client.new(region: ENV.fetch("AWS_DEFAULT_REGION", 'eu-west-1'))
 
   begin
     # Making sure "settings.apps is init correctly"
