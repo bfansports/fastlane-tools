@@ -152,14 +152,22 @@ def build_languages_lookup(languages)
 end
 
 def get_global_file_destination(os, translation, lang_data, languages_lookup)
-    if os == 'android'
-        return $project_path + 'app/src/main/res/values-' + languages_lookup[ lang_data['lang_code'] ]['os_locale'][ os ] + '/' + translation['os_config'][ os ]['file']
-    elsif os == 'ios'
-        return $project_path + 'bFan-ios-dev/Resources/' + languages_lookup[ lang_data['lang_code'] ]['os_locale'][ os ] + '.lproj/' + translation['os_config'][ os ]['file']
-    else
-        puts 'get_global_file_destination: No OS provided'
-        exit()
+    begin
+        if os == 'android'
+            return $project_path + 'app/src/main/res/values-' + languages_lookup[ lang_data['lang_code'] ]['os_locale'][ os ] + '/' + translation['os_config'][ os ]['file']
+        elsif os == 'ios'
+            return $project_path + 'bFan-ios-dev/Resources/' + languages_lookup[ lang_data['lang_code'] ]['os_locale'][ os ] + '.lproj/' + translation['os_config'][ os ]['file']
+        else
+            puts 'get_global_file_destination: No OS provided'
+        end
+    rescue
+        if languages_lookup[ lang_data['lang_code'] ] == nil
+            puts 'get_global_file_destination: Language not found in Languages table : ' + lang_data['lang_code']
+        else
+            puts 'get_global_file_destination: Error while getting destination file : ' + $!.to_s
+        end
     end
+    exit()
 end
 
 def get_org_file_destination(org_id, os, translation, lang_data, languages_lookup)
