@@ -1187,30 +1187,6 @@ def dynamodb_full_scan(dynamodb = Aws::DynamoDB::Client.new(region: ENV.fetch("A
   return items.flatten
 end
 
-# Looks inside fastlane/metadata/#{org}/ for locale folders
-# Used to detect the locales for screenshots
-# @param [String] org organisation id
-# @param [Array<String>] default_locales return value in case of an error
-# @param [String] metadata_path custom path where the locale folders are located
-# @return [Array<String>] list of locales
-def get_locales_from_metadata(org, default_locales = [], metadata_path: "")
-  locales = default_locales
-
-  begin
-    if metadata_path.blank?
-      directory = "./metadata/#{org}/"
-    else
-      directory = metadata_path
-    end
-    locales = Dir.entries(directory).select { |entry| File.directory?(File.join(directory, entry)) and entry =~ /\D+-\D+/ }
-  rescue SystemCallError => e
-    # Directory does not exist.
-    UI.error("#{e} (directory=#{directory})")
-  end
-
-  return locales
-end
-
 # Run after all
 def afterAll(tag, env)
   UI.important("Updating git tracker for changelogs")
