@@ -460,16 +460,17 @@ rescue StandardError => e
 end
 
 # Create Google Play changelog file
-def createiOSChangeLogFile(org, release_notes)
+def createiOSChangeLogFile(org, release_notes, path = nil)
+  path ||= Dir.pwd + "/metadata/#{org}/"
   UI.important("Setting up changelogs: #{org}")
-  Dir.foreach(Dir.pwd + "/metadata/#{org}/") do |local|
+  Dir.foreach(path) do |local|
     next if (local == '.') || (local == '..')
 
     if Dir.exist?(Dir.pwd + "/changelogs/#{local}")
       UI.important("Folder exists: #{local}. Copying ...")
       FileUtils.cp(Dir.pwd + "/changelogs/#{local}/changelog_template.txt",
-                   Dir.pwd + "/metadata/#{org}/#{local}/release_notes.txt")
-      open(Dir.pwd + "/metadata/#{org}/#{local}/release_notes.txt", 'a') do |f|
+                   path + "#{local}/release_notes.txt")
+      File.open(path + "#{local}/release_notes.txt", 'a') do |f|
         f.puts(release_notes)
       end
     end
