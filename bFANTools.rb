@@ -461,16 +461,17 @@ end
 
 # Create Google Play changelog file
 def createiOSChangeLogFile(org, release_notes, path = nil)
-  path ||= Dir.pwd + "/metadata/#{org}/"
+  path ||= File.join(Dir.pwd, "metadata", org)
   UI.important("Setting up changelogs: #{org}")
   Dir.foreach(path) do |local|
-    next if (local == '.') || (local == '..')
+    next if local == '.' || local == '..'
 
-    if Dir.exist?(Dir.pwd + "/changelogs/#{local}")
+    changelog_dir_path = File.join(Dir.pwd, "changelogs", local)
+    if Dir.exist?(changelog_dir_path)
       UI.important("Folder exists: #{local}. Copying ...")
-      FileUtils.cp(Dir.pwd + "/changelogs/#{local}/changelog_template.txt",
-                   path + "#{local}/release_notes.txt")
-      File.open(path + "#{local}/release_notes.txt", 'a') do |f|
+      FileUtils.cp(File.join(changelog_dir_path, "changelog_template.txt"),
+                   File.join(path, local, "release_notes.txt"))
+      File.open(File.join(path, local, "release_notes.txt"), 'a') do |f|
         f.puts(release_notes)
       end
     end
