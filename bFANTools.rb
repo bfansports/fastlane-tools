@@ -1345,3 +1345,37 @@ lane :deploy_firebase_hosting do |options|
     end
   end
 end
+
+desc "Update DynamoDB with firebase_project_id for a given org_id"
+lane :update_firebase_project_id do |options|
+  org_id = options[:org_id]
+  firebase_project_id = options[:firebase_project_id] || get_firebase_project_id(org_id)
+
+  if org_id.blank?
+    UI.user_error!("org_id is required.")
+  end
+
+  dynamodb = Aws::DynamoDB::Client.new(region: ENV.fetch("AWS_DEFAULT_REGION", "eu-west-1"))
+
+  begin
+    response = dynamodb.update_item(
+      {
+        table_name: "Organizations",
+        key: {
+          "id" => org_id
+        },
+        update_expression: "SET #FPID = :fp_id",
+        expression_attribute_names: {
+          "#FPID" => "firebase_project_id"
+        },
+        expression_attribute_values: {
+          ":fp_id" => firebase_project_id
+        }
+      }
+    )
+    UI.success("Successfully updated firebase_project_id for org_id: #{org_id}")
+  rescue Aws::DynamoDB::Errors::ServiceError => e
+    UI.error("Failed to update firebase_project_id for org_id: #{org_id}")
+    UI.error(e.message)
+  end
+end
