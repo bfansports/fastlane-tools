@@ -713,11 +713,11 @@ def updateAppProdVersion(org_id, app_type, version)
       table_name: table_name,
       key: { 'id' => org_id },
       update_expression: 'SET #SETTINGS.#IN_STORES = :store, ' \
-                          '#SETTINGS.#APPS.#TYPE.#ENV = :env, ' \
-                          '#SETTINGS.#APPS.#TYPE.#STORE_VERSION = :version, ' \
-                          '#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date, ' \
-                          '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :null, ' \
-                          '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :null',
+                         '#SETTINGS.#APPS.#TYPE.#ENV = :env, ' \
+                         '#SETTINGS.#APPS.#TYPE.#STORE_VERSION = :version, ' \
+                         '#SETTINGS.#APPS.#TYPE.#STORE_DATE = :date, ' \
+                         '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :null, ' \
+                         '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :null',
       expression_attribute_names: {
         '#SETTINGS' => 'settings',
         '#IN_STORES' => 'in_stores',
@@ -799,8 +799,8 @@ def updateAppInReviewVersion(org_id, app_type, version)
       table_name: table_name,
       key: { 'id' => org_id },
       update_expression: 'SET #SETTINGS.#APPS.#TYPE.#ENV = :env, ' \
-                          '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :version, ' \
-                          '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :date',
+                         '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW = :version, ' \
+                         '#SETTINGS.#APPS.#TYPE.#VERSION_IN_REVIEW_DATE = :date',
       expression_attribute_names: {
         '#SETTINGS' => 'settings',
         '#APPS' => 'apps',
@@ -1168,7 +1168,8 @@ def notifySlackClient(msg, org_id)
     default_payloads: [],
     payload: {
       'Build Date' => Time.new.to_s
-    }
+    },
+    fail_on_error: false # We don't want to fail the build if slack notification fails
   )
 end
 
