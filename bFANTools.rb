@@ -1380,3 +1380,7 @@ lane :update_firebase_project_id do |options|
     UI.error(e.message)
   end
 end
+
+lane :test_september_2024 do |options|
+  puts "Hello September 2024"
+end
