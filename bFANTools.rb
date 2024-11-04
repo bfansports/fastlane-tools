@@ -2,6 +2,13 @@ require 'aws-sdk-ssm'
 require 'aws-sdk-s3'
 require 'aws-sdk-dynamodb'
 require 'fastlane'
+require 'net/http'
+require 'uri'
+require 'json'
+
+SLACK_API_URL = "https://slack.com/api/chat.postMessage"
+SLACK_OAUTH_TOKEN = ENV["SLACK_OAUTH_TOKEN"]
+
 unless defined?(UI)
   UI = FastlaneCore::UI
 end
@@ -1144,11 +1151,6 @@ def notifySlack(msg, payload, success, channel)
 end
 
 def notifySlackClient(msg, org_id)
-  unless ENV.key?("SLACK_CLIENT_URL")
-    UI.error("SLACK_CLIENT_URL not set")
-    UI.error("Slack notification: #{msg}")
-    return
-  end
   # Check the database if the client channel is different from the org_id
   # For example org_id stadefrancais has a slack channel named "#stadefrançaisparis"
   org = getOrg(org_id)
@@ -1158,19 +1160,22 @@ def notifySlackClient(msg, org_id)
     channel = "##{org_id}"
   end
 
-  slack(
-    message: msg,
-    username: "bFAN AutoBuild Bot",
-    icon_url: "https://sportarchive-prod-eu-assets.s3-eu-west-1.amazonaws.com/images/bFAN_circle_128sq_color.png",
-    success: true,
-    slack_url: ENV.fetch("SLACK_CLIENT_URL", nil),
+  url = URI.parse(SLACK_API_URL)
+  http = Net::HTTP.new(url.host, url.port)
+
+  http.use_ssl = true if url.scheme == "https"
+
+  request = Net::HTTP::Post.new(url.path, { 
+    'Content-Type' => 'application/json', 
+    'Authorization' => "Bearer #{SLACK_OAUTH_TOKEN}"
+  })
+
+  request.body = {
     channel: channel,
-    default_payloads: [],
-    payload: {
-      'Build Date' => Time.new.to_s
-    },
-    fail_on_error: false # We don't want to fail the build if slack notification fails
-  )
+    text: msg
+  }.to_json
+
+  http.request(request)
 end
 
 # Returns the ALL the items from dynamodb.scan instead of the 1 MB limit.
