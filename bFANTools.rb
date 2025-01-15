@@ -1151,31 +1151,41 @@ def notifySlack(msg, payload, success, channel)
 end
 
 def notifySlackClient(msg, org_id)
+
+  UI.important("--------------------- Notify Slack client step ---------------------")
+
   # Check the database if the client channel is different from the org_id
   # For example org_id stadefrancais has a slack channel named "#stadefrançaisparis"
-  org = getOrg(org_id)
-  if org && org['integrations'] && org['integrations']['slack'] && org['integrations']['slack']['name']
-    channel = "##{org['integrations']['slack']['name']}"
-  else
-    channel = "##{org_id}"
+
+  begin
+    org = getOrg(org_id)
+    if org && org['integrations'] && org['integrations']['slack'] && org['integrations']['slack']['name']
+      channel = "##{org['integrations']['slack']['name']}"
+    else
+      channel = "##{org_id}"
+    end
+
+    url = URI.parse(SLACK_API_URL)
+    http = Net::HTTP.new(url.host, url.port)
+
+    http.use_ssl = true if url.scheme == "https"
+
+    request = Net::HTTP::Post.new(url.path, {
+      'Content-Type' => 'application/json',
+      'Authorization' => "Bearer #{SLACK_OAUTH_TOKEN}"
+    })
+
+    request.body = {
+      channel: channel,
+      text: msg
+    }.to_json
+
+    http.request(request)
+    UI.important("-------- The client has been notified by Slack successfully --------")
+    UI.important("--------------------------------------------------------------------")
+  rescue => e
+    UI.important("An error has occurred : #{e.message}")
   end
-
-  url = URI.parse(SLACK_API_URL)
-  http = Net::HTTP.new(url.host, url.port)
-
-  http.use_ssl = true if url.scheme == "https"
-
-  request = Net::HTTP::Post.new(url.path, { 
-    'Content-Type' => 'application/json', 
-    'Authorization' => "Bearer #{SLACK_OAUTH_TOKEN}"
-  })
-
-  request.body = {
-    channel: channel,
-    text: msg
-  }.to_json
-
-  http.request(request)
 end
 
 # Returns the ALL the items from dynamodb.scan instead of the 1 MB limit.
