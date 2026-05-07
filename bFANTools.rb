@@ -16,8 +16,8 @@ require 'open-uri'
 # Check if object is falsey
 require "active_support/core_ext/object/blank"
 
-require_relative 'lib/validators/enum'
-require_relative 'lib/options'
+require_relative 'lib/lanes/validators/enum'
+require_relative 'lib/lanes/options'
 
 ###
 ### CUSTOM FUNCTIONS to be used with Android and iOS Fastfiles
