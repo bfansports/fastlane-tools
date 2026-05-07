@@ -7,7 +7,7 @@ require 'uri'
 require 'json'
 
 SLACK_API_URL = "https://slack.com/api/chat.postMessage"
-SLACK_OAUTH_TOKEN = ENV["SLACK_OAUTH_TOKEN"]
+SLACK_OAUTH_TOKEN = ENV.fetch("SLACK_OAUTH_TOKEN", nil)
 
 unless defined?(UI)
   UI = FastlaneCore::UI
@@ -15,6 +15,9 @@ end
 require 'open-uri'
 # Check if object is falsey
 require "active_support/core_ext/object/blank"
+
+require_relative 'lib/validators/enum'
+require_relative 'lib/options'
 
 ###
 ### CUSTOM FUNCTIONS to be used with Android and iOS Fastfiles
@@ -1151,7 +1154,6 @@ def notifySlack(msg, payload, success, channel)
 end
 
 def notifySlackClient(msg, org_id)
-
   UI.important("--------------------- Notify Slack client step ---------------------")
 
   # Check the database if the client channel is different from the org_id
@@ -1183,7 +1185,7 @@ def notifySlackClient(msg, org_id)
     http.request(request)
     UI.important("-------- The client has been notified by Slack successfully --------")
     UI.important("--------------------------------------------------------------------")
-  rescue => e
+  rescue StandardError => e
     UI.important("An error has occurred : #{e.message}")
   end
 end
